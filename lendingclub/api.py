@@ -152,4 +152,4 @@ class LendingClub(object):
             response.raise_for_status()
             response_parsed = response.json()
             return namedtuple('LendingClubListedLoans', 'asOfDate loans')(response_parsed.get('asOfDate'),
-             [namedtuple_from_json('LendingClubLoan', d) for d in response_parsed.get('loans')])
+                [namedtuple_from_json('LendingClubLoan', d) for d in response_parsed.get('loans')])

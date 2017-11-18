@@ -1,6 +1,11 @@
 __author__ = 'porkbutts'
 
-import json, re, requests, warnings
+import json
+import re
+import requests
+import warnings
+from collections import namedtuple
+from decimal import *
 
 from .config import LENDINGCLUB_ENDPOINT
 from .errors import LendingClubError
@@ -15,6 +20,9 @@ def lendingclub_url(*args):
             raise ValueError(f"malformed url path component {c}")
 
     return '/'.join([LENDINGCLUB_ENDPOINT] + args)
+
+def namedtuple_from_json(name, dict):
+    return namedtuple(name, dict.keys())(**dict)
 
 class LendingClub(object):
     """
@@ -49,47 +57,65 @@ class LendingClub(object):
             url = lendingclub_url('accounts', self.investor_id, 'summary')
             response = self.session.get(url=url)
             response.raise_for_status()
-            return response.json()
+            return namedtuple_from_json('LendingClubSummary', response.json())
 
         def available_cash(self):
             url = lendingclub_url('accounts', self.investor_id, 'availablecash')
             response = self.session.get(url=url)
             response.raise_for_status()
-            return response.json()
+            return Decimal(response.json().get("availableCash"))
 
         def add_funds(self, amount, transfer_frequency, start_date=None, end_date=None, estimated_funds_transfer_date=None):
             pass
 
-        def withdraw_funds(self):
+        def withdraw_funds(self, amount):
             url = lendingclub_url('accounts', self.investor_id, 'funds', 'withdraw')
-            pass
+            request_data = {
+                "amount": amount
+            }
+            response = self.session.post(url=url, data=json.dumps(request_data))
+            response.raise_for_status()
+            return namedtuple_from_json('LendingClubWithdrawFundsResponse', response.json())
 
         def pending_transfers(self):
             url = lendingclub_url('accounts', self.investor_id, 'funds', 'pending')
             response = self.session.get(url=url)
             response.raise_for_status()
-            return response.json()
-        
-        def cancel_transfers(self):
-            pass
+            response_parsed = response.json()
+            return ([]  if 'transfers' not in response_parsed
+                        else [namedtuple_from_json('LendingClubPendingTransfer', d) for d
+                            in response_parsed.get('transfers')])
+
+        def cancel_transfers(self, transfer_ids):
+            url = lendingclub_url('accounts', self.investor_id, 'funds', 'cancel')
+            request_data = {
+                "transferId": transfer_ids
+            }
+            response = self.session.post(url=url, data=json.dumps(request_data))
+            response.raise_for_status()
+            return [namedtuple_from_json('LendingClubCancellationResult', d) for d
+                    in response.json().get('cancellationResults')]
 
         def notes_owned(self):
             url = lendingclub_url('accounts', self.investor_id, 'notes')
             response = self.session.get(url=url)
             response.raise_for_status()
-            return response.json()
+            return [namedtuple_from_json('LendingClubNote', d) for d
+                    in response.json().get('myNotes')]
 
         def detailed_notes_owned(self, x_lc_detailed_notes_version=None):
             url = lendingclub_url('accounts', self.investor_id, 'detailednotes')
             response = self.session.get(url=url, headers={'X-LC-DETAILED-NOTES-VERSION':x_lc_detailed_notes_version})
             response.raise_for_status()
-            return response.json()
+            return [namedtuple_from_json('LendingClubDetailedNote', d) for d
+                    in response.json().get('myNotes')]
 
-        def portfolio_owned(self):
+        def portfolios_owned(self):
             url = lendingclub_url('accounts', self.investor_id, 'portfolios')
             response = self.session.get(url=url)
             response.raise_for_status()
-            return response.json()
+            return [namedtuple_from_json('LendingClubPortfolio', d) for d
+                    in response.json().get('myPortfolios')]
 
         def create_portfolio(self, portfolio_name, portfolio_description=None):
             url = lendingclub_url('accounts', self.investor_id, 'portfolios')
@@ -104,7 +130,7 @@ class LendingClub(object):
                 raise LendingClubError("Failed to create portfolio.",
                                         [e.get('message') for e in response_parsed.get('errors')])
             response.raise_for_status()
-            return response_parsed
+            return namedtuple_from_json('LendingClubPortfolio', response_parsed)
 
         def submit_order(self):
             pass
@@ -113,7 +139,7 @@ class LendingClub(object):
             url = lendingclub_url('accounts', self.investor_id, 'filters')
             response = self.session.get(url=url)
             response.raise_for_status()
-            return response.json()
+            return [namedtuple_from_json('LendingClubFilter', d) for d in response.json()]
 
     class Loan(object):
         def __init__(self, session):
@@ -124,4 +150,6 @@ class LendingClub(object):
             params = {'filterId': filter_id, 'showAll': show_all}
             response = self.session.get(url=url, params=params, headers={'X-LC-LISTING-VERSION':x_lc_listing_version})
             response.raise_for_status()
-            return response.json()
+            response_parsed = response.json()
+            return namedtuple('LendingClubListedLoans', 'asOfDate loans')(response_parsed.get('asOfDate'),
+                [namedtuple_from_json('LendingClubLoan', d) for d in response_parsed.get('loans')])

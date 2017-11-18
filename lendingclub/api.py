@@ -81,8 +81,10 @@ class LendingClub(object):
             url = lendingclub_url('accounts', self.investor_id, 'funds', 'pending')
             response = self.session.get(url=url)
             response.raise_for_status()
-            return [namedtuple_from_json('LendingClubPendingTransfer', d) for d
-                    in response.json().get('transfers')]
+            response_parsed = response.json()
+            return ([]  if 'transfers' not in response_parsed
+                        else [namedtuple_from_json('LendingClubPendingTransfer', d) for d
+                            in response_parsed.get('transfers')])
 
         def cancel_transfers(self, transfer_ids):
             url = lendingclub_url('accounts', self.investor_id, 'funds', 'cancel')
@@ -108,7 +110,7 @@ class LendingClub(object):
             return [namedtuple_from_json('LendingClubDetailedNote', d) for d
                     in response.json().get('myNotes')]
 
-        def portfolio_owned(self):
+        def portfolios_owned(self):
             url = lendingclub_url('accounts', self.investor_id, 'portfolios')
             response = self.session.get(url=url)
             response.raise_for_status()
@@ -128,7 +130,7 @@ class LendingClub(object):
                 raise LendingClubError("Failed to create portfolio.",
                                         [e.get('message') for e in response_parsed.get('errors')])
             response.raise_for_status()
-            return namedtuple_from_json('LendingClubPortfolio', d)
+            return namedtuple_from_json('LendingClubPortfolio', response_parsed)
 
         def submit_order(self):
             pass
@@ -137,7 +139,6 @@ class LendingClub(object):
             url = lendingclub_url('accounts', self.investor_id, 'filters')
             response = self.session.get(url=url)
             response.raise_for_status()
-            return response.json()
             return [namedtuple_from_json('LendingClubFilter', d) for d in response.json()]
 
     class Loan(object):
@@ -149,6 +150,6 @@ class LendingClub(object):
             params = {'filterId': filter_id, 'showAll': show_all}
             response = self.session.get(url=url, params=params, headers={'X-LC-LISTING-VERSION':x_lc_listing_version})
             response.raise_for_status()
-            data = response.json()
-            return namedtuple('LendingClubListedLoans', 'asOfDate loans')(data.get('asOfDate'),
-             [namedtuple_from_json('LendingClubLoan', d) for d in data.get('loans')])
+            response_parsed = response.json()
+            return namedtuple('LendingClubListedLoans', 'asOfDate loans')(response_parsed.get('asOfDate'),
+             [namedtuple_from_json('LendingClubLoan', d) for d in response_parsed.get('loans')])

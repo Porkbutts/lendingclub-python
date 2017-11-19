@@ -38,7 +38,7 @@ LendingClubSummary(investorId=123456789, availableCash=0, accountTotal=2500, acc
 >>> len(loans)
 12
 >>> from lendingclub.models import LendingClubOrder
->>> orders = [LendingClubOrder(x.id, 25) for x in loans if x.grade=='A' and x.empLength and int(x.empLength) > 60]
+>>> orders = [LendingClubOrder(x.id, 25) for x in loans if x.grade=='A']
 >>> lc.account.submit_order(orders)
 ```
 

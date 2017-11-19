@@ -26,6 +26,7 @@ def namedtuple_from_json(name, dict):
 
 class LendingClub(object):
     """
+    The main object for interacting with LendingClub API.
     """
     def __init__(self, api_key, investor_id=None):
         """
@@ -65,8 +66,17 @@ class LendingClub(object):
             response.raise_for_status()
             return Decimal(response.json().get("availableCash"))
 
-        def add_funds(self, amount, transfer_frequency, start_date=None, end_date=None, estimated_funds_transfer_date=None):
-            pass
+        def add_funds(self, amount, transfer_frequency, start_date=None, end_date=None):
+            url = lendingclub_url('accounts', self.investor_id, 'funds', 'add')
+            request_data = {
+                "transferFrequency": transfer_frequency,
+                "amount": amount,
+                "startDate": start_date,
+                "endDate": end_date
+            }
+            response = self.session.post(url=url, data=json.dumps(request_data))
+            response.raise_for_status()
+            return namedtuple_from_json('LendingClubTransferInfo', response.json())
 
         def withdraw_funds(self, amount):
             url = lendingclub_url('accounts', self.investor_id, 'funds', 'withdraw')
@@ -75,7 +85,7 @@ class LendingClub(object):
             }
             response = self.session.post(url=url, data=json.dumps(request_data))
             response.raise_for_status()
-            return namedtuple_from_json('LendingClubWithdrawFundsResponse', response.json())
+            return namedtuple_from_json('LendingClubTransferInfo', response.json())
 
         def pending_transfers(self):
             url = lendingclub_url('accounts', self.investor_id, 'funds', 'pending')
@@ -93,7 +103,7 @@ class LendingClub(object):
             }
             response = self.session.post(url=url, data=json.dumps(request_data))
             response.raise_for_status()
-            return [namedtuple_from_json('LendingClubCancellationResult', d) for d
+            return [namedtuple_from_json('LendingClubTransferCancellationResult', d) for d
                     in response.json().get('cancellationResults')]
 
         def notes_owned(self):
@@ -132,8 +142,16 @@ class LendingClub(object):
             response.raise_for_status()
             return namedtuple_from_json('LendingClubPortfolio', response_parsed)
 
-        def submit_order(self):
-            pass
+        def submit_order(self, orders):
+            url = lendingclub_url('accounts', self.investor_id, 'orders')
+            request_data = {
+                "aid": self.investor_id,
+                "orders": orders
+            }
+            response = self.session.post(url=url, data=json.dumps(request_data))
+            response.raise_for_status()
+            return [namedtuple_from_json('LendingClubOrderConfirmation', d) for d
+                    in response.json().get('orderConfirmations')]
 
         def filters(self):
             url = lendingclub_url('accounts', self.investor_id, 'filters')

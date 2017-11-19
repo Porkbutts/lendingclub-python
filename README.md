@@ -17,29 +17,55 @@ Automatic installation using [pip](http://pypi.python.org/pypi):
 
     pip install lcpy
 
+## Getting Started
+
+In order to begin working with the LendingClub API, you will need your API key and Account ID.
+
+* [Instructions on retrieving the API key](https://www.lendingclub.com/developers/authentication)
+*  The Account ID can be obtained from the Account Summary section on the LendingClub website when a user is logged in.
+
 ## Examples
 
 ### Account Summary
 ```python
 >>> from lendingclub import LendingClub
 >>> lc = LendingClub('your_api_key', 'your_account_id')
->>> summary = lc.account.summary()
->>> summary
+>>> lc.account.summary()
 LendingClubSummary(investorId=123456789, availableCash=0, accountTotal=2500, accruedInterest=0, infundingBalance=2500, receivedInterest=0, receivedPrincipal=0, receivedLateFees=0, outstandingPrincipal=0, totalNotes=100, totalPortfolios=2, netAnnualizedReturn={'primaryNAR': None, 'primaryAdjustedNAR': None, 'primaryUserAdjustedNAR': None, 'tradedNAR': None, 'tradedAdjustedNAR': None, 'tradedUserAdjustedNAR': None, 'combinedNAR': None, 'combinedAdjustedNAR': None, 'combinedUserAdjustedNAR': None}, adjustments={'adjustmentForPastDueNotes': 0, 'userAdjustmentForPastDueNotes': None})
->>> summary.available_cash
-0
 ```
 
-### Order Loans
+### Available Cash
+```python
+>>> from lendingclub import LendingClub
+>>> lc = LendingClub('your_api_key', 'your_account_id')
+>>> lc.account.available_cash()
+Decimal('0')
+```
+
+### View Owned Notes
+```python
+>>> from lendingclub import LendingClub
+>>> lc = LendingClub('your_api_key', 'your_account_id')
+>>> notes = lc.account.notes_owned()
+
+# View just the first two notes for brevity
+>>> notes[:2]
+[LendingClubNote(loanId=120119426, noteId=172055989, orderId=172454222, interestRate=10.42, loanLength=36, loanStatus='In Review', grade='B', subGrade='B3', loanAmount=20000, noteAmount=25, paymentsReceived=0, issueDate=None, orderDate='2017-11-17T10:25:42.000-08:00', loanStatusDate='2017-11-17T22:45:01.000-08:00'), LendingClubNote(loanId=121298234, noteId=172055990, orderId=172454222, interestRate=18.06, loanLength=36, loanStatus='In Review', grade='D', subGrade='D2', loanAmount=15000, noteAmount=25, paymentsReceived=0, issueDate=None, orderDate='2017-11-17T10:25:42.000-08:00', loanStatusDate='2017-11-17T10:26:39.000-08:00')]
+```
+
+## Advanced Examples
+
+### Find the top ten Grade-A loans ranked by interest rate and submit an order for ten $100 notes
+
 ```python
 >>> from lendingclub import LendingClub
 >>> lc = LendingClub('your_api_key', 'your_account_id')
 >>> loans = lc.loan.listed_loans().loans
->>> len(loans)
-12
+>>> grade_a_loans = [x for x in loans if x.grade=='A']
+>>> sorted_grade_a_loans = sorted(grade_a_loans, key=lambda x: x.intRate, reverse=True)
+>>> top_ten_grade_a_loans = sorted_grade_a_loans[:10]
 >>> from lendingclub.models import LendingClubOrder
->>> orders = [LendingClubOrder(x.id, 25) for x in loans if x.grade=='A']
->>> lc.account.submit_order(orders)
+>>> lc.account.submit_order([LendingClubOrder(x.id, 100) for x in top_ten_grade_a_loans])
 ```
 
 ## Changelog

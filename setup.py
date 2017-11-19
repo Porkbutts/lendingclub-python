@@ -1,6 +1,6 @@
 from distutils.core import setup
 setup(
-  name = 'lendingclub',
+  name = 'lcpy',
   packages = ['lendingclub', 'lendingclub.models'],
   version = '0.1',
   description = 'Unofficial Python Library for LendingClub API',

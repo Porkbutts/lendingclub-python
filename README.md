@@ -15,7 +15,7 @@ Python Library for the LendingClub API
 
 Automatic installation using [pip](http://pypi.python.org/pypi):
 
-    pip install
+    pip install lcpy
 
 ## Examples
 
